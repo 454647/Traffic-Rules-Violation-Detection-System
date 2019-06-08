@@ -49,7 +49,7 @@ class TrafficProcessor:
         # dilate the thresholded image to fill in holes, then find contours
         # on thresholded image
         self.thresh = cv2.dilate(self.thresh, None, iterations=2)
-        cnts = cv2.findContours(self.thresh.copy(), cv2.RETR_EXTERNAL,
+        cnts = cv2.findContours(self.thresh.copy(), cv2.RETR_TREE,
                                 cv2.CHAIN_APPROX_SIMPLE)
         cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 		
@@ -58,7 +58,7 @@ class TrafficProcessor:
             # loop over the contours
             for c in cnts:
                 # if the contour is too small, ignore it
-                if cv2.contourArea(contours[c]) < self.min_area:
+                if cv2.contourArea(c) < self.min_area:
                     continue
 
                 # compute the bounding box for the contour, draw it on the frame,
