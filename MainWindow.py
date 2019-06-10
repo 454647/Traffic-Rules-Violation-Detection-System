@@ -33,9 +33,9 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage("Welcome")
 
-        self.search_button.clicked.connect(self.search)
         self.clear_button.clicked.connect(self.clear)
         self.refresh_button.clicked.connect(self.refresh)
+        self.toggle_traffic.clicked.connect(self.toggleLight)
 
         self.database = Database.getInstance()
         self.database.deleteAllCars()
@@ -59,15 +59,13 @@ class MainWindow(QMainWindow):
         self.violation_list = QListWidget(self)
         self.search_result = QListWidget(self)
         self.log_tabwidget.addTab(self.violation_list, "Violations")
-        self.log_tabwidget.addTab(self.search_result, "Search Result")
+        self.log_tabwidget.addTab(self.search_result, "")
 
         self.feed = None
         self.vs = None
         self.updateCamInfo()
 
         self.updateLog()
-
-        self.initMenu()
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_image)
@@ -173,6 +171,8 @@ class MainWindow(QMainWindow):
 
     def update_image(self):
         _, frame = self.vs.read()
+        if frame is None:
+            return
 
         packet = self.processor.getProcessedImage(frame)
         cars_violated = packet['list_of_cars']  # list of cropped images of violated cars

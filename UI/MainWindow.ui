@@ -65,7 +65,7 @@
             <property name="editable">
              <bool>false</bool>
             </property>
-            <property name="currentText">
+            <property name="currentText" stdset="0">
              <string/>
             </property>
             <property name="currentIndex">
@@ -77,9 +77,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="map">
+           <widget class="QPushButton" name="toggle_traffic">
             <property name="text">
-             <string>Map</string>
+             <string>Toggle Traffic</string>
             </property>
            </widget>
           </item>
@@ -175,7 +175,7 @@
           <property name="movable">
            <bool>true</bool>
           </property>
-          <property name="tabBarAutoHide">
+          <property name="tabBarAutoHide" stdset="0">
            <bool>true</bool>
           </property>
           <widget class="QWidget" name="tab_1">
@@ -195,26 +195,6 @@
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>158</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <widget class="QPushButton" name="search_button">
-            <property name="text">
-             <string>Search</string>
-            </property>
-           </widget>
-          </item>
           <item>
            <widget class="QPushButton" name="refresh_button">
             <property name="text">
