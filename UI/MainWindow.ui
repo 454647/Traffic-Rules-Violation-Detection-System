@@ -35,7 +35,7 @@
       <item>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="2,3,0,1">
+         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="2,3,1">
           <item>
            <widget class="QComboBox" name="camera_group"/>
           </item>
@@ -55,13 +55,6 @@
             </property>
             <property name="maxVisibleItems">
              <number>5</number>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="show_parking">
-            <property name="text">
-             <string>PushButton</string>
             </property>
            </widget>
           </item>
