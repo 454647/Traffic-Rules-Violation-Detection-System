@@ -1,4 +1,4 @@
-import sqlite3 as lite
+import sqlite3 as    lite
 from enum import Enum
 
 from PyQt5.QtGui import QPixmap
@@ -146,7 +146,7 @@ class Database():
                   " and violations.camera = camera.id"
         if cam is not None:
             command = command + " and violations.camera = '" + str(cam) + "'"
-        
+
 
         cur.execute(command)
         rows = cur.fetchall()

@@ -5,6 +5,8 @@ import imutils
 
 
 # import winsound
+from imutils import contours
+
 
 class TrafficProcessor:
 
@@ -47,36 +49,36 @@ class TrafficProcessor:
         # dilate the thresholded image to fill in holes, then find contours
         # on thresholded image
         self.thresh = cv2.dilate(self.thresh, None, iterations=2)
-        cnts = cv2.findContours(self.thresh.copy(), cv2.RETR_EXTERNAL,
+        cnts = cv2.findContours(self.thresh.copy(), cv2.RETR_TREE,
                                 cv2.CHAIN_APPROX_SIMPLE)
         cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 		
         # cnts = imutils.grab_contours(cnts)
+        if cnts is not None:
+            # loop over the contours
+            for c in cnts:
+                # if the contour is too small, ignore it
+                if cv2.contourArea(c) < self.min_area:
+                    continue
 
-        # loop over the contours
-        for c in cnts:
-            # if the contour is too small, ignore it
-            if cv2.contourArea(c) < self.min_area:
-                continue
+                # compute the bounding box for the contour, draw it on the frame,
+                # and update the text
+                (x, y, w, h) = cv2.boundingRect(c)
+                if (self.zone1[0] < (x + w / 2) < self.zone2[0] and (y + h / 2) < self.zone1[1] + 100 and (
+                        y + h / 2) > self.zone2[1] - 100):
+                    isCar = True
 
-            # compute the bounding box for the contour, draw it on the frame,
-            # and update the text
-            (x, y, w, h) = cv2.boundingRect(c)
-            if (self.zone1[0] < (x + w / 2) < self.zone2[0] and (y + h / 2) < self.zone1[1] + 100 and (
-                    y + h / 2) > self.zone2[1] - 100):
-                isCar = True
+                if self.light == "Red" and self.zone1[0] < (x + w / 2) < self.zone2[0] and self.zone1[1] > (y + h / 2) > \
+                        self.zone2[1]:
+                    # winsound.Beep(self.freq, self.duration)
+                    rcar = self.frame[y:y + h, x:x + w]
+                    rcar = cv2.resize(rcar, (0, 0), fx=4, fy=4)
+                    cropped_cars.append(rcar)
+                    cv2.imwrite('reported_car/car_' + str(self.cnt) + ".jpg", rcar)
+                    self.cnt += 1
+                    text = "<Violation>"
 
-            if self.light == "Red" and self.zone1[0] < (x + w / 2) < self.zone2[0] and self.zone1[1] > (y + h / 2) > \
-                    self.zone2[1]:
-                # winsound.Beep(self.freq, self.duration)
-                rcar = self.frame[y:y + h, x:x + w]
-                rcar = cv2.resize(rcar, (0, 0), fx=4, fy=4)
-                cropped_cars.append(rcar)
-                cv2.imwrite('reported_car/car_' + str(self.cnt) + ".jpg", rcar)
-                self.cnt += 1
-                text = "<Violation>"
-
-            cv2.rectangle(self.frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
+                cv2.rectangle(self.frame, (x, y), (x + w, y + h), (255, 255, 0), 2)
 
         if self.dynamic or not isCar:
             self.firstFrame = self.gray

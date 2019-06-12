@@ -18,6 +18,8 @@ from add_windows.AddCar import AddCar
 from add_windows.AddRule import AddRule
 from add_windows.AddViolation import AddViolation
 
+import datetime
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -33,13 +35,13 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage("Welcome")
 
-        self.search_button.clicked.connect(self.search)
         self.clear_button.clicked.connect(self.clear)
         self.refresh_button.clicked.connect(self.refresh)
+        self.toggle_traffic.clicked.connect(self.toggleLight)
 
         self.database = Database.getInstance()
         self.database.deleteAllCars()
-        self.database.deleteAllViolations()
+        # self.database.deleteAllViolations()
 
         cam_groups = self.database.getCamGroupList()
         self.camera_group.clear()
@@ -55,19 +57,13 @@ class MainWindow(QMainWindow):
 
         self.processor = MainProcessor(self.cam_selector.currentText())
 
-        self.log_tabwidget.clear()
-        self.violation_list = QListWidget(self)
-        self.search_result = QListWidget(self)
-        self.log_tabwidget.addTab(self.violation_list, "Violations")
-        self.log_tabwidget.addTab(self.search_result, "Search Result")
+        self.violation_list = self.listWidget
 
         self.feed = None
         self.vs = None
         self.updateCamInfo()
 
         self.updateLog()
-
-        self.initMenu()
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_image)
@@ -173,6 +169,8 @@ class MainWindow(QMainWindow):
 
     def update_image(self):
         _, frame = self.vs.read()
+        if frame is None:
+            return
 
         packet = self.processor.getProcessedImage(frame)
         cars_violated = packet['list_of_cars']  # list of cropped images of violated cars
@@ -196,9 +194,9 @@ class MainWindow(QMainWindow):
         self.feed = 'videos/' + self.feed
         self.processor = MainProcessor(self.cam_selector.currentText())
         self.vs = cv2.VideoCapture(self.feed)
-        self.cam_id.setText(self.cam_selector.currentText())
-        self.address.setText(location)
-        self.total_records.setText(str(count))
+        # self.cam_id.setText(self.cam_selector.currentText())
+        # self.address.setText(location)
+        # self.total_records.setText(str(count))
 
     def updateLog(self):
         self.violation_list.clear()
@@ -228,6 +226,7 @@ class MainWindow(QMainWindow):
         prompt = qm.question(self, '', "Are you sure to reset all the values?", qm.Yes | qm.No)
         if prompt == qm.Yes:
             self.database.clearCamLog()
+            self.database.deleteAllViolations()
             self.updateLog()
         else:
             pass
