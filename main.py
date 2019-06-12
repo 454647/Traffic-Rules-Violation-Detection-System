@@ -9,6 +9,7 @@ def main():
     main_window = MainWindow()
     # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     main_window.show()
+    main_window.showMaximized()
     sys.exit(app.exec_())
 
 
