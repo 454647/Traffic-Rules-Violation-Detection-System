@@ -18,7 +18,7 @@ from add_windows.AddCar import AddCar
 from add_windows.AddRule import AddRule
 from add_windows.AddViolation import AddViolation
 
-import datetime
+from plateDetection import Main
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -76,65 +76,6 @@ class MainWindow(QMainWindow):
     def toggleLight(self):
         self.processor.setLight('Green' if self.processor.getLight() == 'Red' else 'Red')
 
-    def initMenu(self):
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-
-        # File menu
-
-        ## add record manually
-        addRec = QMenu("Add Record", self)
-
-        act = QAction('Add Car', self)
-        act.setStatusTip('Add Car Manually')
-        act.triggered.connect(self.addCar)
-        addRec.addAction(act)
-
-        act = QAction('Add Rule', self)
-        act.setStatusTip('Add Rule Manually')
-        act.triggered.connect(self.addRule)
-        addRec.addAction(act)
-
-        act = QAction('Add Violation', self)
-        act.setStatusTip('Add Violation Manually')
-        act.triggered.connect(self.addViolation)
-        addRec.addAction(act)
-
-        act = QAction('Add Camera', self)
-        act.setStatusTip('Add Camera Manually')
-        act.triggered.connect(self.addCamera)
-        addRec.addAction(act)
-
-        fileMenu.addMenu(addRec)
-
-        # check archive record ( Create window and add button to restore them)
-        act = QAction('&Archives', self)
-        act.setStatusTip('Show Archived Records')
-        act.triggered.connect(self.showArch)
-        fileMenu.addAction(act)
-
-        settingsMenu = menubar.addMenu('&Settings')
-        themeMenu = QMenu("Themes", self)
-        settingsMenu.addMenu(themeMenu)
-
-        act = QAction('Dark', self)
-        act.setStatusTip('Dark Theme')
-        act.triggered.connect(lambda: qApp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5()))
-        themeMenu.addAction(act)
-
-        act = QAction('White', self)
-        act.setStatusTip('White Theme')
-        act.triggered.connect(lambda: qApp.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5()))
-        themeMenu.addAction(act)
-
-        ## Add Exit
-        fileMenu.addSeparator()
-        act = QAction('&Exit', self)
-        act.setShortcut('Ctrl+Q')
-        act.setStatusTip('Exit application')
-        act.triggered.connect(qApp.quit)
-        fileMenu.addAction(act)
-
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key_G:
             self.processor.setLight("Green")
@@ -142,30 +83,6 @@ class MainWindow(QMainWindow):
             self.processor.setLight("Red")
         elif event.key() == QtCore.Qt.Key_S:
             self.toggleLight()
-
-    def addCamera(self):
-        addWin = AddCamera(parent=self)
-        addWin.show()
-
-    def addCar(self):
-        addWin = AddCar(parent=self)
-        addWin.show()
-
-    def addViolation(self):
-        pass
-        addWin = AddViolation(parent=self)
-        addWin.show()
-
-    def addRule(self):
-        addWin = AddRule(parent=self)
-        addWin.show()
-
-    def showArch(self):
-        addWin = ArchiveWindow(parent=self)
-        addWin.show()
-
-    def updateSearch(self):
-        pass
 
     def update_image(self):
         _, frame = self.vs.read()
@@ -179,10 +96,16 @@ class MainWindow(QMainWindow):
                 carId = self.database.getMaxCarId() + 1
                 car_img = 'car_' + str(carId) + '.png'
                 cv2.imwrite('car_images/' + car_img, c)
-                self.database.insertIntoCars(car_id=carId, car_img=car_img)
+                plate, number = Main.main(c)
+                if number:
+                    self.database.insertIntoCars(car_id=carId, car_img=car_img,lic_img=plate, lic_num=number)
+                    self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
+                                                       time=time.time())
+                else:
+                    self.database.insertIntoCars(car_id=carId, car_img=car_img)
+                    self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
+                                                       time=time.time())
 
-                self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
-                                                   time=time.time())
 
             self.updateLog()
 

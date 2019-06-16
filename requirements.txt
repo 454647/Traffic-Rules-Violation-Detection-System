@@ -8,5 +8,6 @@ psutil==5.6.2
 PyQt5==5.12.1
 PyQt5-sip==4.19.17
 PyQt5-stubs==5.12.1.0
+PyYAML==5.1.1
 QDarkStyle==2.7
 zipp==0.5.1

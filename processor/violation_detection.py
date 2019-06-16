@@ -17,7 +17,7 @@ class DirectionViolationDetection:
 
         self.cap = cv2.VideoCapture(vid_file)  # insane
 
-        # Capture the properties of VideoCapture to console
+        # Capture the properties of k to console
         # for i in range(19):
         #     print(i, self.cap.get(i))
 
