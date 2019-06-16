@@ -35,7 +35,7 @@
       <item>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="2,3,1">
+         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0">
           <item>
            <widget class="QComboBox" name="camera_group"/>
           </item>
@@ -59,9 +59,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="toggle_traffic">
+           <widget class="QPushButton" name="take_plate_snap">
             <property name="text">
-             <string>Toggle Traffic</string>
+             <string>Grab Plate</string>
             </property>
            </widget>
           </item>

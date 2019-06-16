@@ -29,15 +29,14 @@ class MainWindow(QMainWindow):
         from PyQt5.QtWidgets import QSizePolicy
         self.live_preview.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
 
-        self.cam_clear_gaurd = False
-
+        self.cam_clear_guard = False
+        self.allow_snap = False
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage("Welcome")
 
         self.clear_button.clicked.connect(self.clear)
         self.refresh_button.clicked.connect(self.refresh)
-        self.toggle_traffic.clicked.connect(self.toggleLight)
 
         self.database = Database.getInstance()
         self.database.deleteAllCars()
@@ -54,7 +53,7 @@ class MainWindow(QMainWindow):
         self.cam_selector.addItems(name for name, location, feed in cams)
         self.cam_selector.setCurrentIndex(0)
         self.cam_selector.currentIndexChanged.connect(self.camChanged)
-
+        self.take_plate_snap.clicked.connect(self.take_snap)
         self.processor = MainProcessor(self.cam_selector.currentText())
 
         self.violation_list = self.listWidget
@@ -69,12 +68,11 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self.update_image)
         self.timer.start(50)
 
+        self.car_cascade = cv2.CascadeClassifier('cars.xml')
+
         # trafficLightTimer = QTimer(self)
         # trafficLightTimer.timeout.connect(self.toggleLight)
         # trafficLightTimer.start(5000)
-
-    def toggleLight(self):
-        self.processor.setLight('Green' if self.processor.getLight() == 'Red' else 'Red')
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key_G:
@@ -84,33 +82,43 @@ class MainWindow(QMainWindow):
         elif event.key() == QtCore.Qt.Key_S:
             self.toggleLight()
 
+    def take_snap(self):
+        self.allow_snap = True
+
     def update_image(self):
         _, frame = self.vs.read()
         if frame is None:
+            self.updateCamInfo()
+            self.updateLog()
             return
 
-        packet = self.processor.getProcessedImage(frame)
-        cars_violated = packet['list_of_cars']  # list of cropped images of violated cars
-        if len(cars_violated) > 0:
-            for c in cars_violated:
-                carId = self.database.getMaxCarId() + 1
-                car_img = 'car_' + str(carId) + '.png'
-                cv2.imwrite('car_images/' + car_img, c)
-                plate, number = Main.main(c)
-                if number:
-                    self.database.insertIntoCars(car_id=carId, car_img=car_img,lic_img=plate, lic_num=number)
-                    self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
-                                                       time=time.time())
-                else:
-                    self.database.insertIntoCars(car_id=carId, car_img=car_img)
-                    self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
-                                                       time=time.time())
+        # packet = self.processor.getProcessedImage(frame)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        cars = self.car_cascade.detectMultiScale(gray, 1.1, 3)
 
+        for (x, y, w, h) in cars:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
+        if self.allow_snap:
+            self.allow_snap = False
+            plate_img, plate = Main.main(frame)
+            carId = self.database.getMaxCarId() + 1
+            car_img = 'car_' + str(carId) + '.png'
+            cv2.imwrite('car_images/' + car_img, plate_img)
+            if plate:
+                self.database.insertIntoCars(car_id=carId, car_img=car_img , lic_img=plate, lic_num=plate)
+                self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
+                                                   time=time.time())
+            else:
+                self.database.insertIntoCars(car_id=carId, car_img=car_img)
+                self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
+                                                   time=time.time())
             self.updateLog()
-
-        qimg = self.toQImage(packet['frame'])
-        self.live_preview.setPixmap(QPixmap.fromImage(qimg))
+        try:
+            qimg = self.toQImage(frame)
+            self.live_preview.setPixmap(QPixmap.fromImage(qimg))
+        except Exception:
+            print("unable to draw")
 
     def updateCamInfo(self):
         count, location, self.feed = self.database.getCamDetails(self.cam_selector.currentText())
@@ -170,17 +178,17 @@ class MainWindow(QMainWindow):
 
     @QtCore.pyqtSlot()
     def camChanged(self):
-        if not self.cam_clear_gaurd:
+        if not self.cam_clear_guard:
             self.updateCamInfo()
             self.updateLog()
 
     @QtCore.pyqtSlot()
     def camGroupChanged(self):
         cams = self.database.getCamList(self.camera_group.currentText())
-        self.cam_clear_gaurd = True
+        self.cam_clear_guard = True
         self.cam_selector.clear()
         self.cam_selector.addItems(name for name, location, feed in cams)
         self.cam_selector.setCurrentIndex(0)
         # self.cam_selector.currentIndexChanged.connect(self.camChanged)
-        self.cam_clear_gaurd = False
+        self.cam_clear_guard = False
         self.updateCamInfo()
