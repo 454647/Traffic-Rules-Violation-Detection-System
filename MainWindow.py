@@ -1,5 +1,4 @@
 import time
-
 import cv2
 import qdarkstyle
 from PyQt5 import QtCore, QtWidgets
@@ -7,6 +6,7 @@ from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QStatusBar, QListWidget, QAction, qApp, QMenu
 from PyQt5.uic import loadUi
+import numpy as np
 
 from Archive import ArchiveWindow
 from Database import Database
@@ -85,6 +85,9 @@ class MainWindow(QMainWindow):
     def take_snap(self):
         self.allow_snap = True
 
+    minx = 1000
+    maxx = 0
+
     def update_image(self):
         _, frame = self.vs.read()
         if frame is None:
@@ -93,11 +96,21 @@ class MainWindow(QMainWindow):
             return
 
         # packet = self.processor.getProcessedImage(frame)
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blurrend = cv2.GaussianBlur(frame, (5, 5), 0)
+        gray = cv2.cvtColor(blurrend, cv2.COLOR_RGB2GRAY)
+        blur_gray = cv2.GaussianBlur(src=gray, ksize=(5, 5), sigmaX=0)
+        edges = cv2.Canny(blur_gray, 50, 150, 3)
+        lines = cv2.HoughLinesP(image=edges, rho=1, theta=np.pi / 180, threshold=80, minLineLength=15, maxLineGap=5)
+        for x1, y1, x2, y2 in lines[0]:
+            if y1 > 150 and y2 > 150:
+                self.minx = min(self.minx, x1)
+                self.maxx = max(self.maxx, x2)
+                cv2.line(frame, (self.minx, y1), (self.maxx, y2), (255, 0, 0), 3)
         cars = self.car_cascade.detectMultiScale(gray, 1.1, 3)
 
         for (x, y, w, h) in cars:
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            if w > 140 and h > 140:
+                cv2.rectangle(frame, (x+20, y), (x + w, y + h-80), (0, 255, 0), 2)
 
         if self.allow_snap:
             self.allow_snap = False
