@@ -7,6 +7,7 @@ from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QStatusBar, QListWidget, QAction, qApp, QMenu
 from PyQt5.uic import loadUi
 import numpy as np
+from pytesseract import pytesseract
 
 from Archive import ArchiveWindow
 from Database import Database
@@ -30,7 +31,7 @@ class MainWindow(QMainWindow):
         self.live_preview.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
 
         self.cam_clear_guard = False
-        self.allow_snap = False
+        self.allow_snap = True
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.showMessage("Welcome")
@@ -87,6 +88,8 @@ class MainWindow(QMainWindow):
 
     minx = 1000
     maxx = 0
+    miny = 1000
+    maxy = 0
 
     def update_image(self):
         _, frame = self.vs.read()
@@ -105,33 +108,34 @@ class MainWindow(QMainWindow):
             if y1 > 150 and y2 > 150:
                 self.minx = min(self.minx, x1)
                 self.maxx = max(self.maxx, x2)
+                self.miny = min(self.miny, y1)
+                self.maxy = max(self.maxy, y2)
                 cv2.line(frame, (self.minx, y1), (self.maxx, y2), (255, 0, 0), 3)
         cars = self.car_cascade.detectMultiScale(gray, 1.1, 3)
 
         for (x, y, w, h) in cars:
             if w > 140 and h > 140:
                 cv2.rectangle(frame, (x+20, y), (x + w, y + h-80), (0, 255, 0), 2)
-
-        if self.allow_snap:
-            self.allow_snap = False
-            plate_img, plate = Main.main(frame)
-            carId = self.database.getMaxCarId() + 1
-            car_img = 'car_' + str(carId) + '.png'
-            cv2.imwrite('car_images/' + car_img, plate_img)
-            if plate:
-                self.database.insertIntoCars(car_id=carId, car_img=car_img , lic_img=plate, lic_num=plate)
-                self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
-                                                   time=time.time())
-            else:
-                self.database.insertIntoCars(car_id=carId, car_img=car_img)
-                self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
-                                                   time=time.time())
-            self.updateLog()
-        try:
-            qimg = self.toQImage(frame)
-            self.live_preview.setPixmap(QPixmap.fromImage(qimg))
-        except Exception:
-            print("unable to draw")
+                if y+h-80 > self.maxy and self.allow_snap:
+                    cropped = frame[y:y+h-80, x+20:x+w]
+                    config = "-l eng --oem 1 --psm 7"
+                    text = pytesseract.image_to_string(cropped, config=config)
+                    print(text)
+                    plate_img, plate = Main.main(cropped)
+                    if plate:
+                        carId = self.database.getMaxCarId() + 1
+                        car_img = 'car_' + str(carId) + '.png'
+                        cv2.imwrite('car_images/' + car_img, plate_img)
+                        self.allow_snap = False
+                        self.database.insertIntoCars(car_id=carId, car_img=car_img , lic_img=plate, lic_num=plate)
+                        self.database.insertIntoViolations(camera=self.cam_selector.currentText(), car=carId, rule='1',
+                                                           time=time.time())
+                    self.updateLog()
+                try:
+                    qimg = self.toQImage(frame)
+                    self.live_preview.setPixmap(QPixmap.fromImage(qimg))
+                except Exception:
+                    print("unable to draw")
 
     def updateCamInfo(self):
         count, location, self.feed = self.database.getCamDetails(self.cam_selector.currentText())
